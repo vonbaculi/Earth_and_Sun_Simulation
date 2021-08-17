@@ -1,0 +1,88 @@
+
+from vpython import *
+G = 6.67e-11
+
+mass_moon = .07346e24 #7.348e22
+mass_earth = 5.972e24
+mass_sun = 1.989e30
+
+#Due to the radius changes the moon cant be seen but its revolving the earth 
+#change all planets or earths size to *1 to see the moon revolving 
+
+size = 1000 #change size of plants exept sun and moon
+radius_sun = 696.3e6 * 10 # 100 will cover mercury
+radius_earth = 6.371e6 
+radius_moon = 1.7371e6 * 100
+
+rad_sun_earth = 147.092e9 
+rad_earth_moon = 384400e3
+
+#sqrt(G*mass/distance)
+w_earth = sqrt(G*1.989e30/147.1e9**3)
+w_moon  = sqrt(G*5.972e24/384400e3**3) #or 2.66381143466778e-06
+
+
+def get_force(object1,object2):
+    force_vec = -(G*object1.mass*object2.mass/((mag(object1.pos-object2.pos)))**2)*((object1.pos-object2.pos)/(mag(object1.pos-object2.pos)))
+    return force_vec
+
+sun = sphere( pos=vector(0,0,0), radius=radius_sun, emissive = True, texture = "https://i.imgur.com/XdRTvzj.jpeg",
+               mass = mass_sun, momentum=vector(0, 0, 0), make_trail=True )
+
+#earth.momentum = 1.7502727576336543e+29  try = 1.219217249611594e+29
+
+earth = sphere(pos=vector(rad_sun_earth,0,0), radius=radius_earth * size, texture=textures.earth,
+               mass = mass_earth, momentum=vector( 0, rad_sun_earth*w_earth*mass_earth , 0) ,make_trail=True )
+
+moon = sphere(pos=vector(rad_sun_earth+rad_earth_moon,0,0), radius=radius_moon,texture = "http://i.imgur.com/YPg4RPU.jpg",
+               mass = mass_moon ,momentum=vector(0,0,0) , make_trail=True )
+    
+moon.momentum = moon.mass*(earth.momentum/earth.mass+vector(0,rad_earth_moon*w_moon,0))
+
+#momentum = Distance from the sun * mass of the planet * angular v
+mercury = sphere(pos=vector(46.002e9,0,0), radius=2.439e6 * size, texture = "https://i.imgur.com/tJV7qzf.png",
+               mass = 0.33011e24, momentum=vector( 0,1.7727628100403606e+28, 0), make_trail=True )
+
+venus = sphere(pos=vector(107.476e9,0,0), radius=6.051e6 * size, texture = "https://i.imgur.com/YuK3CzJ.jpeg",
+               mass = 4.8675e24, momentum=vector( 0,1.7101354959099e+29, 0), make_trail=True )
+
+#Lighting
+scene.lights = []
+sunlight = local_light( pos = vec(0,0,0), color=color.white )
+ss = local_light( pos = vec(0,0,0), color=color.white )
+
+#CHANGE CAMERA FOCUS CLICK ON THE PLANET
+scene.camera.follow(sun)
+scene.bind("mousedown", changeView)
+def changeView():
+    chosenObject = scene.mouse.pick()
+    if chosenObject != None:    
+        scene.camera.follow(chosenObject)
+        
+        
+dt = 1000
+t = 0
+while (True):
+    if t > 3.154e+7:
+      break
+    rate(10000)
+    
+    sun.force = get_force(sun,mercury) + get_force(sun,venus) + get_force(sun,earth)  + get_force(sun,moon)
+    mercury.force = get_force(mercury,sun) + get_force(mercury,venus) + get_force(mercury,earth) + get_force(mercury,moon) 
+    earth.force = get_force(earth,sun) + get_force(earth,mercury) + get_force(earth,moon)
+    moon.force = get_force(moon,sun) +  get_force(moon,earth) +  get_force(moon,mercury) + get_force(moon,venus)
+    venus.force = get_force(venus,sun) + get_force(venus,mercury) +  get_force(venus,earth) +  get_force(venus,moon)
+
+    sun.momentum = sun.momentum + sun.force*dt
+    mercury.momentum = mercury.momentum + mercury.force*dt
+    venus.momentum = venus.momentum + venus.force*dt
+    earth.momentum = earth.momentum + earth.force*dt
+    moon.momentum = moon.momentum + moon.force*dt
+    
+    sun.pos = sun.pos + sun.momentum*dt /sun.mass
+    mercury.pos = mercury.pos + mercury.momentum*dt /mercury.mass
+    venus.pos = venus.pos + venus.momentum*dt /venus.mass
+    earth.pos = earth.pos + earth.momentum*dt /earth.mass
+    moon.pos = moon.pos + moon.momentum*dt /moon.mass
+
+    t = t + dt
